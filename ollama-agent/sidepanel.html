@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ollama Agent</title>
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <div class="brand"><span class="logo">&#9679;</span> Ollama Agent</div>
+      <div class="pills">
+        <button class="pill off" id="ollamaPill" title="Ollama server status (click to refresh)">
+          <span class="dot"></span><span class="pt">Ollama</span>
+        </button>
+        <button class="pill off" id="bridgePill" title="MCP bridge status (click for settings)">
+          <span class="dot"></span><span class="pt">MCP off</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="row">
+      <select id="model" aria-label="Model"></select>
+      <button id="refresh" class="icon" title="Reload model list" aria-label="Reload model list">&#8635;</button>
+    </div>
+
+    <details id="settings">
+      <summary>Settings</summary>
+      <div class="panel">
+        <div class="row">
+          <label for="ctx">Context</label>
+          <select id="ctx">
+            <option value="8192">8K</option>
+            <option value="16384">16K</option>
+            <option value="32768" selected>32K</option>
+          </select>
+        </div>
+        <label class="check"><input type="checkbox" id="confirmAll" /> Confirm every action</label>
+
+        <div class="section-title">MCP bridge (VS Code Continue) <span id="bridgeState" class="muted">off</span></div>
+        <label class="check"><input type="checkbox" id="bridgeOn" /> Allow MCP clients to control this browser</label>
+        <div class="row">
+          <label for="bridgeToken">Token</label>
+          <input id="bridgeToken" type="password" placeholder="same as BRIDGE_TOKEN" autocomplete="off" />
+        </div>
+        <div class="row">
+          <label for="bridgePort">Port</label>
+          <input id="bridgePort" type="number" value="8765" />
+        </div>
+        <div class="hint">Calls from MCP clients run without confirmation here. Use "Ask First" in the client.</div>
+      </div>
+    </details>
+
+    <div id="status" class="status"></div>
+  </header>
+
+  <main id="log">
+    <div id="empty" class="empty">
+      <div class="empty-title">What should I do in this tab?</div>
+      <div class="empty-sub">The agent can read the page, click, type, scroll and open tabs.</div>
+      <div class="chips">
+        <button class="chip" data-prompt="Summarize this page in 5 bullet points.">Summarize this page</button>
+        <button class="chip" data-prompt="List all the links on this page that look important, with a one-line description each.">List key links</button>
+        <button class="chip" data-prompt="What forms or inputs are on this page? Describe what each one is for.">Find forms</button>
+        <button class="chip" data-prompt="List my open tabs and tell me what each one is about.">List my tabs</button>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="composer">
+      <textarea id="input" rows="1" placeholder="Ask the agent to do something in the current tab..."></textarea>
+      <div class="actions">
+        <button id="clear" class="ghost" title="Clear conversation">Clear</button>
+        <button id="stop" class="stop" disabled>Stop</button>
+        <button id="send" class="primary">Send</button>
+      </div>
+    </div>
+  </footer>
+
+  <script src="tools.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>

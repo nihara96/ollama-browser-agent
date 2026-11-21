@@ -1,0 +1,13 @@
+# Save as .continue/mcpServers/ollama-browser-agent.yaml in your VS Code workspace
+# (or replace the contents of the "New MCP server" file Continue created).
+name: Ollama Browser Agent
+version: 0.0.1
+schema: v1
+mcpServers:
+  - name: Ollama Browser Agent
+    command: node
+    args:
+      - D:\Nihara Projects\ollama-browser-agent\mcp-bridge\server.js
+    env:
+      BRIDGE_TOKEN: REPLACE_WITH_YOUR_OWN_RANDOM_TOKEN
+      BRIDGE_PORT: "8765"
