@@ -11,3 +11,6 @@ Thumbs.db
 
 # Local Continue config used for testing
 .continue/
+
+# Web Store upload packages
+release/
