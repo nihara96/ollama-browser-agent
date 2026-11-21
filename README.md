@@ -13,7 +13,7 @@ Everything runs on your machine: the model, the extension and the bridge. No clo
 - **Browser tools** for the model: read the page, click, type, scroll, navigate, open/switch tabs.
 - **Compact page view:** a numbered list of interactive elements plus trimmed page text, sized for small context windows.
 - **Safety prompts:** risky clicks (submit, buy, delete, send...) and typing with Enter ask for confirmation; optional "confirm every action"; never types into password fields; step limit and Stop button.
-- **MCP bridge:** exposes the same tools to any MCP client over stdio, with token authentication and a live connection indicator in the side panel.
+- **MCP bridge:** exposes the same tools to any MCP client over stdio, connected with a single button (no token to generate or paste) and a live connection indicator in the side panel.
 - **TypeScript** throughout (strict mode), bundled with esbuild; the extension is loaded unpacked.
 
 ## How it works
@@ -59,11 +59,7 @@ If you still get HTTP 403, set `OLLAMA_ORIGINS=chrome-extension://*` and restart
 ## MCP bridge (VS Code Continue and other MCP clients)
 
 1. Build the project (`npm install && npm run build`). The server is `mcp-bridge/dist/server.mjs`.
-2. Generate a token (12+ characters), for example:
-   ```bash
-   node -e "console.log(require('crypto').randomBytes(18).toString('hex'))"
-   ```
-3. Add the server to your MCP client. For Continue, create `.continue/mcpServers/ollama-browser-agent.yaml`
+2. Add the server to your MCP client. For Continue, create `.continue/mcpServers/ollama-browser-agent.yaml`
    (see [`mcp-bridge/continue-mcp-server.example.yaml`](mcp-bridge/continue-mcp-server.example.yaml)):
    ```yaml
    name: Ollama Browser Agent
@@ -74,12 +70,11 @@ If you still get HTTP 403, set `OLLAMA_ORIGINS=chrome-extension://*` and restart
        command: node
        args:
          - /absolute/path/to/ollama-browser-agent/mcp-bridge/dist/server.mjs
-       env:
-         BRIDGE_TOKEN: your-token-here
-         BRIDGE_PORT: "8765"
    ```
-4. In the extension side panel open **Settings → MCP bridge**, tick *Allow MCP clients to control this browser* and paste the same token.
-5. The **MCP** pill at the top turns green when a client is connected. Use your client's agent mode with a tool-calling model.
+   No environment variables are required. To use a different port, set `BRIDGE_PORT` in the server's `env`
+   and enter the same port in the extension.
+3. In the extension side panel open **Settings → MCP bridge** and click **Connect**.
+4. The **MCP** pill at the top turns green when a client is connected. Use your client's agent mode with a tool-calling model.
 
 Tools exposed: `get_page`, `click`, `type`, `scroll`, `navigate`, `open_tab`, `list_tabs`, `switch_tab`.
 
@@ -90,11 +85,11 @@ After rebuilding, restart the MCP server in your client and reload the extension
 
 This project gives a language model control of a browser that may be signed in to your accounts. Treat it accordingly.
 
-- The MCP bridge is **off by default** and requires a shared token.
-- The bridge server listens on `127.0.0.1` only and rejects connections whose origin is a normal web page (only `chrome-extension://` origins or non-browser clients).
+- The MCP bridge is **off by default** and only runs after you click **Connect** in the side panel. There is no shared token.
+- The bridge server listens on `127.0.0.1` only and accepts WebSocket connections only from `chrome-extension://` origins, so ordinary web pages cannot reach it. Because there is no secret, another process running as you, or another installed Chrome extension, could also connect to the local port while the bridge server is running; it could feed fake page contents to your MCP client but cannot drive your browser. Only install extensions you trust.
 - Calls arriving over MCP are **not** confirmed inside the extension. Set `click`, `type`, `navigate` and `open_tab` to "Ask First" in your MCP client.
 - Pages can contain text that tries to instruct the model (prompt injection). Do not point the agent at untrusted pages while signed in to sensitive accounts.
-- Never commit your token. `bridge.log` is git-ignored.
+- `bridge.log` is git-ignored.
 
 Found a vulnerability? Please open a private security advisory on GitHub instead of a public issue.
 

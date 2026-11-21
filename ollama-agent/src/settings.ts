@@ -2,7 +2,6 @@ import { DEFAULT_BRIDGE_PORT, type BridgeState } from "../../shared/protocol";
 
 export interface BridgeSettings {
   bridgeEnabled: boolean;
-  bridgeToken: string;
   bridgePort: number;
 }
 
@@ -14,7 +13,6 @@ export interface PanelSettings {
 
 export const BRIDGE_DEFAULTS: BridgeSettings = {
   bridgeEnabled: false,
-  bridgeToken: "",
   bridgePort: DEFAULT_BRIDGE_PORT,
 };
 

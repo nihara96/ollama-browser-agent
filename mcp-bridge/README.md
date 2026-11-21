@@ -12,4 +12,4 @@ MCP client --stdio--> dist/server.mjs --WebSocket 127.0.0.1:8765--> Chrome exten
 - Example Continue config: [`continue-mcp-server.example.yaml`](continue-mcp-server.example.yaml).
 - Startup log: `dist/bridge.log`.
 
-Environment variables: `BRIDGE_TOKEN` (required, 12+ characters) and `BRIDGE_PORT` (default `8765`).
+Environment variable: `BRIDGE_PORT` (optional, default `8765`). There is no token: click **Connect** in the extension side panel.

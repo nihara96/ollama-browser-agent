@@ -80,7 +80,7 @@ export function parseToolCall(name: string, raw: unknown): ToolCall {
 
 /** Messages the extension sends to the bridge server. */
 export type ExtensionMessage =
-  | { type: "hello"; token: string }
+  | { type: "hello" }
   | { type: "ping" }
   | { type: "result"; id: number; ok: true; result: string }
   | { type: "result"; id: number; ok: false; error: string };
@@ -88,7 +88,6 @@ export type ExtensionMessage =
 /** Messages the bridge server sends to the extension. */
 export type ServerMessage =
   | { type: "welcome" }
-  | { type: "denied" }
   | { type: "call"; id: number; tool: string; args: unknown };
 
 /** Connection state shown in the side panel. */
@@ -96,5 +95,4 @@ export type BridgeState =
   | "off"
   | "connecting"
   | "connected"
-  | "waiting for server"
-  | "token rejected by server";
+  | "waiting for server";

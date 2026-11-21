@@ -39,15 +39,14 @@
         <label class="check"><input type="checkbox" id="confirmAll" /> Confirm every action</label>
 
         <div class="section-title">MCP bridge (VS Code Continue) <span id="bridgeState" class="muted">off</span></div>
-        <label class="check"><input type="checkbox" id="bridgeOn" /> Allow MCP clients to control this browser</label>
         <div class="row">
-          <label for="bridgeToken">Token</label>
-          <input id="bridgeToken" type="password" placeholder="same as BRIDGE_TOKEN" autocomplete="off" />
+          <button id="bridgeToggle" class="primary">Connect</button>
         </div>
         <div class="row">
           <label for="bridgePort">Port</label>
           <input id="bridgePort" type="number" value="8765" />
         </div>
+        <div class="hint">One click, no token needed. Connect, then start the MCP server from your client.</div>
         <div class="hint">Calls from MCP clients run without confirmation here. Use "Ask First" in the client.</div>
       </div>
     </details>

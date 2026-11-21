@@ -6,7 +6,6 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { timingSafeEqual } from "node:crypto";
 import { appendFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer, type WebSocket } from "ws";
@@ -19,10 +18,8 @@ import {
   type ToolName,
 } from "../../shared/protocol";
 
-const TOKEN = process.env.BRIDGE_TOKEN ?? "";
 const PORT = Number(process.env.BRIDGE_PORT ?? DEFAULT_BRIDGE_PORT);
 const CALL_TIMEOUT_MS = 45_000;
-const MIN_TOKEN_LENGTH = 12;
 
 // Log to stderr (stdout is MCP) and to bridge.log next to the bundle, because MCP clients often hide stderr.
 const LOG_FILE = fileURLToPath(new URL("./bridge.log", import.meta.url));
@@ -38,13 +35,8 @@ process.on("uncaughtException", (e) => log("uncaughtException:", e instanceof Er
 process.on("unhandledRejection", (e) => log("unhandledRejection:", e instanceof Error ? (e.stack ?? e.message) : e));
 
 log(
-  `starting; node ${process.version}; cwd=${process.cwd()}; port=${PORT}; tokenLength=${TOKEN.length}; SystemRoot=${process.env.SystemRoot ?? "(missing)"}`,
+  `starting; node ${process.version}; cwd=${process.cwd()}; port=${PORT}; SystemRoot=${process.env.SystemRoot ?? "(missing)"}`,
 );
-
-if (TOKEN.length < MIN_TOKEN_LENGTH) {
-  log(`BRIDGE_TOKEN is missing or too short (min ${MIN_TOKEN_LENGTH} chars). Set it in the MCP server env and in the extension.`);
-  process.exit(1);
-}
 
 // ---------- WebSocket side (extension) ----------
 interface Pending {
@@ -53,33 +45,28 @@ interface Pending {
   timer: ReturnType<typeof setTimeout>;
 }
 
-let ext: WebSocket | null = null; // authenticated extension socket
+let ext: WebSocket | null = null; // connected extension socket
 let nextId = 1;
 const pending = new Map<number, Pending>();
 
 const wss = new WebSocketServer({
   host: "127.0.0.1",
   port: PORT,
-  // Only the Chrome extension (or a non-browser client) may connect; never an ordinary web page.
-  verifyClient: ({ origin }: { origin: string }) => !origin || origin.startsWith("chrome-extension://"),
+  // No shared secret: only a Chrome extension origin may connect. Ordinary web pages (http/https origins)
+  // and clients that send no Origin header at all are rejected.
+  verifyClient: ({ origin }: { origin: string }) => Boolean(origin) && origin.startsWith("chrome-extension://"),
 });
 wss.on("listening", () => log(`listening on ws://127.0.0.1:${PORT}`));
 wss.on("error", (e: Error) => log("websocket server error:", e.message));
-
-function tokenOk(candidate: unknown): boolean {
-  const a = Buffer.from(String(candidate ?? ""));
-  const b = Buffer.from(TOKEN);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
 
 function sendTo(ws: WebSocket, msg: ServerMessage): void {
   ws.send(JSON.stringify(msg));
 }
 
 wss.on("connection", (ws: WebSocket) => {
-  let authed = false;
+  let greeted = false;
   const timer = setTimeout(() => {
-    if (!authed) ws.close();
+    if (!greeted) ws.close();
   }, 5000);
 
   ws.on("message", (data) => {
@@ -89,16 +76,15 @@ wss.on("connection", (ws: WebSocket) => {
     } catch {
       return;
     }
-    if (!authed) {
-      if (m.type === "hello" && tokenOk(m.token)) {
-        authed = true;
+    if (!greeted) {
+      if (m.type === "hello") {
+        greeted = true;
         clearTimeout(timer);
         if (ext && ext !== ws) ext.close();
         ext = ws;
         sendTo(ws, { type: "welcome" });
         log("extension connected");
       } else {
-        sendTo(ws, { type: "denied" });
         ws.close();
       }
       return;
@@ -133,7 +119,7 @@ function callExtension(tool: ToolName, args: unknown): Promise<string> {
     if (!ext || ext.readyState !== ext.OPEN) {
       reject(
         new Error(
-          "The Chrome extension is not connected. Open the Ollama Agent side panel, expand Settings, tick the MCP bridge checkbox, and set the same token as BRIDGE_TOKEN.",
+          "The Chrome extension is not connected. Open the Ollama Agent side panel, expand Settings, and click Connect under MCP bridge.",
         ),
       );
       return;

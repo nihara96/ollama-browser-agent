@@ -43,8 +43,7 @@ const els = {
 };
 
 const bridgeEls = {
-  on: $<HTMLInputElement>("bridgeOn"),
-  token: $<HTMLInputElement>("bridgeToken"),
+  toggle: $<HTMLButtonElement>("bridgeToggle"),
   port: $<HTMLInputElement>("bridgePort"),
   state: $("bridgeState"),
 };
@@ -253,9 +252,8 @@ els.clear.onclick = () => {
 const BRIDGE_PILLS: Record<BridgeState, [PillClass, string, string]> = {
   connected: ["ok", "MCP connected", "An MCP client (e.g. Continue) is connected and can use this browser."],
   connecting: ["warn", "MCP connecting", "Connecting to the bridge server..."],
-  "waiting for server": ["warn", "MCP waiting", "Bridge enabled, waiting for the MCP server to start (it starts from Continue)."],
-  "token rejected by server": ["err", "MCP token rejected", "The token does not match BRIDGE_TOKEN in the MCP config."],
-  off: ["off", "MCP off", "MCP bridge is off. Click to open settings."],
+  "waiting for server": ["warn", "MCP waiting", "Connected to the extension side; waiting for the MCP server to start (it starts from Continue)."],
+  off: ["off", "MCP off", "MCP bridge is off. Click to open settings and press Connect."],
 };
 
 function showBridgeState(state: BridgeState | undefined): void {
@@ -267,22 +265,24 @@ function showBridgeState(state: BridgeState | undefined): void {
 
 async function loadBridge(): Promise<void> {
   const c = await getBridgeSettings();
-  bridgeEls.on.checked = c.bridgeEnabled;
-  bridgeEls.token.value = c.bridgeToken;
+  showBridgeToggle(c.bridgeEnabled);
   bridgeEls.port.value = String(c.bridgePort);
   showBridgeState(await getBridgeState());
 }
 
-function saveBridge(): void {
-  void saveBridgeSettings({
-    bridgeEnabled: bridgeEls.on.checked,
-    bridgeToken: bridgeEls.token.value.trim(),
-    bridgePort: Number(bridgeEls.port.value) || DEFAULT_BRIDGE_PORT,
-  });
+function showBridgeToggle(enabled: boolean): void {
+  bridgeEls.toggle.textContent = enabled ? "Disconnect" : "Connect";
+  bridgeEls.toggle.classList.toggle("primary", !enabled);
 }
-bridgeEls.on.onchange = bridgeEls.token.onchange = bridgeEls.port.onchange = saveBridge;
+
+bridgeEls.toggle.onclick = async () => {
+  const enabled = !(await getBridgeSettings()).bridgeEnabled;
+  await saveBridgeSettings({ bridgeEnabled: enabled, bridgePort: Number(bridgeEls.port.value) || DEFAULT_BRIDGE_PORT });
+};
+bridgeEls.port.onchange = () => void saveBridgeSettings({ bridgePort: Number(bridgeEls.port.value) || DEFAULT_BRIDGE_PORT });
 
 chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes.bridgeEnabled) showBridgeToggle(Boolean(changes.bridgeEnabled.newValue));
   if (area !== "session") return;
   const state = changes.bridgeState;
   if (state) showBridgeState(state.newValue as BridgeState | undefined);
@@ -298,7 +298,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // ---------- UI niceties ----------
 els.bridgePill.onclick = () => {
   els.settings.open = true;
-  bridgeEls.token.scrollIntoView({ block: "nearest" });
+  bridgeEls.toggle.scrollIntoView({ block: "nearest" });
 };
 
 function autoGrow(): void {

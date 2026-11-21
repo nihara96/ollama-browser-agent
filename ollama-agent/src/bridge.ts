@@ -1,7 +1,7 @@
 // MCP bridge client. Runs in the service worker.
 // Connects to the local bridge server (mcp-bridge/) over WebSocket and executes the tool calls it
 // forwards from an MCP client such as the Continue VS Code extension.
-// Disabled by default: enable it and set a token in the side panel.
+// Disabled by default: the user turns it on with the Connect button in the side panel.
 
 import { parseToolCall, type ExtensionMessage, type ServerMessage } from "../../shared/protocol";
 import { BrowserExecutor } from "./executor";
@@ -45,7 +45,7 @@ async function handleCall(ws: WebSocket, id: number, tool: string, args: unknown
 
 export async function connectBridge(): Promise<void> {
   const cfg = await getBridgeSettings();
-  if (!cfg.bridgeEnabled || !cfg.bridgeToken) {
+  if (!cfg.bridgeEnabled) {
     closeBridge();
     setBridgeState("off");
     return;
@@ -62,7 +62,7 @@ export async function connectBridge(): Promise<void> {
   socket = ws;
   setBridgeState("connecting");
 
-  ws.onopen = () => send(ws, { type: "hello", token: cfg.bridgeToken });
+  ws.onopen = () => send(ws, { type: "hello" });
 
   ws.onmessage = (ev) => {
     let m: ServerMessage;
@@ -77,9 +77,6 @@ export async function connectBridge(): Promise<void> {
         clearInterval(pingTimer);
         // Regular traffic keeps the service worker alive while connected.
         pingTimer = setInterval(() => send(ws, { type: "ping" }), 20000);
-        break;
-      case "denied":
-        setBridgeState("token rejected by server");
         break;
       case "call":
         void handleCall(ws, m.id, m.tool, m.args);
@@ -101,12 +98,14 @@ export async function connectBridge(): Promise<void> {
 
 /** Wire up reconnect timers and settings listeners. Call once from the service worker. */
 export function startBridge(): void {
+  // Earlier versions stored a shared token; it is no longer used.
+  void chrome.storage.local.remove("bridgeToken");
   chrome.alarms.create("bridge-reconnect", { periodInMinutes: 0.5 });
   chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === "bridge-reconnect") void connectBridge();
   });
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "local" && ("bridgeEnabled" in changes || "bridgeToken" in changes || "bridgePort" in changes)) {
+    if (area === "local" && ("bridgeEnabled" in changes || "bridgePort" in changes)) {
       closeBridge();
       void connectBridge();
     }

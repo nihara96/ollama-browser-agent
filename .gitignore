@@ -8,3 +8,6 @@ bridge.log
 .DS_Store
 Thumbs.db
 .claude/
+
+# Local Continue config used for testing
+.continue/

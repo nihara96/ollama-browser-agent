@@ -8,6 +8,4 @@ mcpServers:
     command: node
     args:
       - C:\path\to\ollama-browser-agent\mcp-bridge\dist\server.mjs
-    env:
-      BRIDGE_TOKEN: REPLACE_WITH_YOUR_OWN_RANDOM_TOKEN
-      BRIDGE_PORT: "8765"
+    # Optional: env: { BRIDGE_PORT: "8765" }
