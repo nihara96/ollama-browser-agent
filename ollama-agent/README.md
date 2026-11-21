@@ -1,18 +1,13 @@
-# Ollama Browser Agent
+# Ollama Browser Agent (Chrome extension)
 
-Chrome side-panel extension that lets a local Ollama model read and operate your browser tabs.
+Manifest V3 extension written in TypeScript.
 
-## Install
-1. Make sure Ollama is running (`ollama list` should work).
-2. Open `chrome://extensions`, enable **Developer mode**.
-3. Click **Load unpacked** and choose this folder.
-4. Click the extension icon to open the side panel, pick a model in the dropdown, and chat.
+- `src/sidepanel.ts`: side panel chat UI and agent loop (talks to Ollama)
+- `src/background.ts`: service worker (Ollama header rule, MCP bridge client)
+- `src/bridge.ts`: WebSocket client for the MCP bridge
+- `src/executor.ts`: browser tool execution (shared by the side panel and the bridge)
+- `src/pageFunctions.ts`: functions injected into web pages (must stay self-contained)
+- `dist/`: built output referenced by `manifest.json` and `sidepanel.html` (generated, git-ignored)
 
-## Notes
-- The extension removes the `Origin` header on requests to `localhost:11434`, so you should not need `OLLAMA_ORIGINS`.
-  If you still get a 403, set `OLLAMA_ORIGINS=chrome-extension://*` and restart Ollama.
-- Tools: get_page, click, type, scroll, navigate, open_tab, list_tabs, switch_tab.
-- Risky clicks (submit, buy, delete, send...) and typing with Enter ask for confirmation. Tick "Confirm every action" for full control.
-- It never types into password fields. Max 15 steps per message; use Stop to cancel.
-- Does not work on `chrome://` pages or the Chrome Web Store.
-- Small models struggle with long multi-step flows; keep tasks short and specific.
+Build from the repository root (`npm install && npm run build`), then load this folder with
+**Load unpacked** at `chrome://extensions`. See the [root README](../README.md) for full instructions.

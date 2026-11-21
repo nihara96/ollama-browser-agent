@@ -14,7 +14,7 @@ Everything runs on your machine: the model, the extension and the bridge. No clo
 - **Compact page view:** a numbered list of interactive elements plus trimmed page text, sized for small context windows.
 - **Safety prompts:** risky clicks (submit, buy, delete, send...) and typing with Enter ask for confirmation; optional "confirm every action"; never types into password fields; step limit and Stop button.
 - **MCP bridge:** exposes the same tools to any MCP client over stdio, with token authentication and a live connection indicator in the side panel.
-- **No build step:** plain JavaScript, load it unpacked.
+- **TypeScript** throughout (strict mode), bundled with esbuild; the extension is loaded unpacked.
 
 ## How it works
 
@@ -26,31 +26,39 @@ MCP client (Continue, ...) ──stdio──► mcp-bridge/server.js ──WebSo
 
 | Folder | What it is |
 |---|---|
-| [`ollama-agent/`](ollama-agent) | The Chrome extension (Manifest V3): side panel, page tools, bridge client |
-| [`mcp-bridge/`](mcp-bridge) | Node.js MCP server that forwards tool calls to the extension |
+| [`ollama-agent/`](ollama-agent) | The Chrome extension (Manifest V3). Sources in `src/`, built output in `dist/` |
+| [`mcp-bridge/`](mcp-bridge) | Node.js MCP server that forwards tool calls to the extension. Sources in `src/`, built output in `dist/` |
+| [`shared/`](shared) | Types and the tool/WebSocket protocol shared by both |
+| [`scripts/`](scripts) | esbuild build script |
 
 ## Requirements
 
 - [Ollama](https://ollama.com) running locally with at least one model that supports tool calling (for example `qwen3.5`).
 - Google Chrome (or another Chromium browser with side panel support).
-- Node.js 18+ (only for the MCP bridge).
+- Node.js 18+ and npm (to build the project and run the MCP bridge).
+
+## Build
+
+```bash
+npm install
+npm run build
+```
+
+This produces `ollama-agent/dist/` (extension scripts) and `mcp-bridge/dist/server.mjs` (bridge server).
 
 ## Quick start: side panel agent
 
 1. Make sure Ollama is running: `ollama list`.
-2. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked** and select the `ollama-agent` folder.
-3. Click the extension icon to open the side panel, pick a model and ask it to do something in the current tab.
+2. Build the project (see above).
+3. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked** and select the `ollama-agent` folder.
+4. Click the extension icon to open the side panel, pick a model and ask it to do something in the current tab.
 
 The extension removes the `Origin` header on requests to `localhost:11434`, so you normally do not need to set `OLLAMA_ORIGINS`.
 If you still get HTTP 403, set `OLLAMA_ORIGINS=chrome-extension://*` and restart Ollama.
 
 ## MCP bridge (VS Code Continue and other MCP clients)
 
-1. Install dependencies:
-   ```bash
-   cd mcp-bridge
-   npm install
-   ```
+1. Build the project (`npm install && npm run build`). The server is `mcp-bridge/dist/server.mjs`.
 2. Generate a token (12+ characters), for example:
    ```bash
    node -e "console.log(require('crypto').randomBytes(18).toString('hex'))"
@@ -65,7 +73,7 @@ If you still get HTTP 403, set `OLLAMA_ORIGINS=chrome-extension://*` and restart
      - name: Ollama Browser Agent
        command: node
        args:
-         - /absolute/path/to/ollama-browser-agent/mcp-bridge/server.js
+         - /absolute/path/to/ollama-browser-agent/mcp-bridge/dist/server.mjs
        env:
          BRIDGE_TOKEN: your-token-here
          BRIDGE_PORT: "8765"
@@ -75,7 +83,8 @@ If you still get HTTP 403, set `OLLAMA_ORIGINS=chrome-extension://*` and restart
 
 Tools exposed: `get_page`, `click`, `type`, `scroll`, `navigate`, `open_tab`, `list_tabs`, `switch_tab`.
 
-Troubleshooting: the server writes a startup log to `mcp-bridge/bridge.log` (MCP clients often hide stderr).
+Troubleshooting: the server writes a startup log to `mcp-bridge/dist/bridge.log` (MCP clients often hide stderr).
+After rebuilding, restart the MCP server in your client and reload the extension at `chrome://extensions`.
 
 ## Security
 
@@ -109,7 +118,19 @@ Found a vulnerability? Please open a private security advisory on GitHub instead
 ## Contributing
 
 Issues and pull requests are welcome. For larger changes, please open an issue first to discuss the approach.
-There is no build step: edit the files and reload the extension at `chrome://extensions`.
+
+Development workflow:
+
+```bash
+npm install
+npm run watch       # rebuild on change; reload the extension at chrome://extensions after changes
+npm run typecheck   # strict TypeScript check for the extension and the bridge
+```
+
+Code layout notes:
+- Functions in `ollama-agent/src/pageFunctions.ts` are injected into web pages with `chrome.scripting.executeScript`,
+  so they are serialized and must be fully self-contained (no imports or outside helpers).
+- The WebSocket protocol and tool definitions live in `shared/protocol.ts`; change them there so both sides stay in sync.
 
 ## License
 

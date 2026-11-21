@@ -5,7 +5,7 @@
   "description": "Chat with a local Ollama model that can read and navigate your browser tabs.",
   "permissions": ["sidePanel", "tabs", "scripting", "storage", "declarativeNetRequest", "alarms"],
   "host_permissions": ["<all_urls>", "http://localhost:11434/*", "http://127.0.0.1:11434/*"],
-  "background": { "service_worker": "background.js" },
+  "background": { "service_worker": "dist/background.js" },
   "side_panel": { "default_path": "sidepanel.html" },
   "action": { "default_title": "Open Ollama Agent" }
 }

@@ -1,6 +1,8 @@
 node_modules/
+dist/
 bridge.log
 *.log
+*.tsbuildinfo
 .env
 .env.*
 .DS_Store
